@@ -1,0 +1,41 @@
+function compareAndUpdateSheets() {
+  // IDs or names of the sheets
+  const productionSheetId = "YOUR_PRODUCTION_SHEET_ID";
+  const freshDataSheetId = "YOUR_FRESH_DATA_SHEET_ID";
+
+  // Names of the sheets within the spreadsheets
+  const productionSheetName = "Production";
+  const freshDataSheetName = "FreshData";
+
+  // Open the sheets
+  const productionSheet = SpreadsheetApp.openById(productionSheetId).getSheetByName(productionSheetName);
+  const freshDataSheet = SpreadsheetApp.openById(freshDataSheetId).getSheetByName(freshDataSheetName);
+
+  // Get the data from the sheets
+  const productionData = productionSheet.getDataRange().getValues();
+  const freshData = freshDataSheet.getDataRange().getValues();
+
+  // Create a map for quick lookup of fresh data by Product and LicenseType
+  const freshDataMap = new Map();
+  for (let i = 1; i < freshData.length; i++) {
+    const key = `${freshData[i][1]}_${freshData[i][3]}`; // Product_LicenseType
+    freshDataMap.set(key, freshData[i]);
+  }
+
+  // Iterate over production data and update if necessary
+  for (let i = 1; i < productionData.length; i++) {
+    const key = `${productionData[i][1]}_${productionData[i][3]}`; // Product_LicenseType
+    if (freshDataMap.has(key)) {
+      const freshRow = freshDataMap.get(key);
+      if (productionData[i][7] !== freshRow[7]) {
+        // Compare TotalSoFar
+        productionSheet.getRange(i + 1, 1).setValue(new Date()); // Update InsertedOn
+        productionSheet.getRange(i + 1, 8).setValue(freshRow[7]); // Update TotalSoFar
+      }
+    }
+  }
+
+  // Sort the production sheet by TotalSoFar in descending order
+  const range = productionSheet.getRange(2, 1, productionSheet.getLastRow() - 1, productionSheet.getLastColumn());
+  range.sort({ column: 8, ascending: false });
+}
